@@ -1,16 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.tasks.consumers import stop_kafka_consumers
-from app.tasks.consumers import run_kafka_consumers
-
-from app.core.redis import REDIS
-from app.api.v1.endpoints.operators import router as operator_router
-from app.api.v1.endpoints.operator_desk import router as operator_desk_router
-from app.api.v1.endpoints.operator_desk_config import router as operator_desk_config_router
-from app.core import config
-from app.core.database import init_db
-from app.core.logging import configure_logging
-
 from uuid import UUID
 import json
 from fastapi import WebSocket, APIRouter, WebSocketDisconnect
@@ -38,26 +27,14 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup():
-    init_db(app)
-    await REDIS.connect()
-    await run_kafka_consumers()
-
 
 @app.on_event("shutdown")
 async def shutdown():
-    await stop_kafka_consumers()
-    await REDIS.disconnect()
 
 
 @app.get("/operator-service/health")
 async def health():
     return {"status": "ok"}
-
-
-app.include_router(router=operator_router, prefix="/operator-service")
-app.include_router(router=operator_desk_router, prefix="/operator-service")
-app.include_router(router=operator_desk_config_router, prefix="/operator-service")
-
 
 from app.websocket.websocket_manager import websocket_manager
 @app.websocket("/ws/{room_id}/{user_id}")
